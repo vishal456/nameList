@@ -1,0 +1,92 @@
+ <!DOCTYPE html>
+<html>
+	<head>
+		<title>name</title>
+		<link rel="stylesheet" href="css/main.css">
+	</head>
+	<body>
+		<div class="name">
+			<div class="name-messages">
+			</div>
+			<textarea placeholder="Enter your name"></textarea>
+			<div class="name-status">Directions :<span></span></div>
+		</div>
+
+		<script src="http://127.0.0.1:8080/socket.io/socket.io.js"></script>
+
+		<script>
+			(function(){
+				var getNode = function(s) {
+					return document.querySelector(s);
+				},
+
+				// Get required nodes
+				messages = getNode('.name-messages'),
+				status = getNode('.name-status span'),
+				textarea = getNode('.name textarea'),
+				statusDefault = status.textContent,
+				setStatus = function(s){
+					status.textContent = s;
+					if(s !== statusDefault) {
+						var delay = setTimeout(function() {
+							setStatus(statusDefault);
+							clearInterval(delay);
+						}, 3000);
+					}
+				};
+
+
+				try{
+					var socket = io.connect('http://127.0.0.1:8080');
+				}
+				catch(e){
+					// set status to warm user
+				}
+
+				if(socket !== undefined){
+
+					//Listen for output
+					socket.on('output', function(data){
+						if(data.length) {
+							// loop through resoults
+							for(var x = 0 ; x < data.length; x = x + 1){
+								var message = document.createElement('div');
+
+								message.setAttribute('class','name-message');
+								message.textContent = data[x].name;
+
+								messages.appendChild(message);
+								messages.insertBefore(message, messages.lastChild);
+							}
+						}
+					});
+
+
+					//listen for status
+					socket.on('status', function(data){
+						setStatus((typeof data === 'object') ? data.message : data);
+
+						if(data.clear === true){
+							textarea.value = '';
+						}
+					});
+
+
+					textarea.addEventListener('keydown', function(event){
+						var self = this;
+
+						if(event.which === 13 && event.shiftKey === false){
+							socket.emit('input',{
+								name : self.value
+							});
+
+							event.preventDefault();
+						}
+
+					});
+				}
+			})();
+		</script>
+
+	</body>
+</html> 
